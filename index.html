@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayDesign — Konfigurator zakresu wdrożenia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal: #0F6E56; --teal-light: #E1F5EE; --teal-mid: #1D9E75;
+    --text-primary: #1a1a1a; --text-secondary: #6b6b6b;
+    --bg: #ffffff; --bg2: #f7f7f5;
+    --border: rgba(0,0,0,0.1); --border-mid: rgba(0,0,0,0.18);
+    --radius-md: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text-primary: #f0ede8; --text-secondary: #9e9b95;
+      --bg: #1c1c1a; --bg2: #252523;
+      --border: rgba(255,255,255,0.1); --border-mid: rgba(255,255,255,0.18);
+    }
+    .badge-required { background: #085041 !important; color: #9FE1CB !important; }
+    .badge-included { background: #042C53 !important; color: #B5D4F4 !important; }
+    .option-row.selected { background: #0d2e22 !important; border-color: #1D9E75 !important; }
+    .option-row.locked { background: #0e1e2e !important; border-color: #185FA5 !important; }
+    .tag-dep { background: #412402 !important; color: #FAC775 !important; }
+    .tag-api-give { background: #501313 !important; color: #F7C1C1 !important; }
+    .tag-api-take { background: #042C53 !important; color: #B5D4F4 !important; }
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; }
+  .page { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+  .brand { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2rem; }
+  .brand-name { font-family: 'DM Serif Display', serif; font-size: 26px; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 12px; color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .section { margin-bottom: 1.25rem; border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .section-head { padding: 0.9rem 1.15rem; background: var(--bg2); display: flex; align-items: center; gap: 10px; }
+  .section-badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+  .badge-required { background: #E1F5EE; color: #085041; }
+  .badge-included { background: #E6F1FB; color: #042C53; }
+  .badge-optional { background: var(--bg2); color: var(--text-secondary); border: 0.5px solid var(--border-mid); }
+  .option-row.locked { cursor: default; pointer-events: none; }
+  .option-row.locked .opt-check { background: #378ADD; border-color: #378ADD; }
+  .section-title { font-size: 14px; font-weight: 500; flex: 1; }
+  .section-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .section-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .section-body { padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.6rem; border-top: 0.5px solid var(--border); }
+
+  .option-row { display: flex; align-items: flex-start; gap: 10px; padding: 0.7rem 0.8rem; border-radius: var(--radius-md); border: 0.5px solid var(--border); background: var(--bg); cursor: pointer; transition: border-color 0.15s; }
+  .option-row:hover { border-color: var(--border-mid); }
+  .option-row.selected { border-color: #1D9E75; background: #f0fdf8; }
+  .option-row.disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+  .opt-check { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--border-mid); flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .option-row.selected .opt-check { background: #1D9E75; border-color: #1D9E75; }
+  .check-tick { display: none; }
+  .option-row.selected .check-tick { display: block; }
+  .opt-label { font-size: 13px; font-weight: 500; }
+  .opt-desc { font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.55; }
+  .opt-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 10px; margin-left: 4px; font-weight: 500; vertical-align: middle; }
+  .tag-dep { background: #FAEEDA; color: #633806; }
+  .tag-api-give { background: #FCEBEB; color: #501313; }
+  .tag-api-take { background: #E6F1FB; color: #042C53; }
+
+  .sub-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin: 0.35rem 0.75rem 0.4rem; }
+  .qty-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .qty-row label { font-size: 12px; color: var(--text-secondary); }
+  .qty-input { width: 64px; padding: 4px 8px; font-size: 13px; font-family: inherit; border: 0.5px solid var(--border-mid); border-radius: 6px; background: var(--bg); color: var(--text-primary); }
+
+  .summary-box { border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 1.75rem; }
+  .summary-head { padding: 0.9rem 1.15rem; background: var(--bg2); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; border-bottom: 0.5px solid var(--border); }
+  .summary-body { padding: 1.1rem 1.15rem; }
+  .legend { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+  .req-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-client { background: #E24B4A; }
+  .dot-playdesign { background: #1D9E75; }
+  .dot-info { background: #378ADD; }
+  .req-section { margin-bottom: 1rem; }
+  .req-section:last-child { margin-bottom: 0; }
+  .req-title { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.45rem; }
+  .req-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 0.45rem; }
+  .req-item .req-dot { margin-top: 5px; flex-shrink: 0; }
+  .req-text { font-size: 13px; line-height: 1.55; }
+  .empty-state { font-size: 13px; color: var(--text-secondary); text-align: center; padding: 1rem 0; }
+
+  .print-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 1.25rem; padding: 9px 18px; font-family: inherit; font-size: 13px; font-weight: 500; border: 0.5px solid var(--border-mid); border-radius: 8px; background: var(--bg); color: var(--text-primary); cursor: pointer; }
+  .print-btn:hover { background: var(--bg2); }
+
+  @media print {
+    .print-btn { display: none; }
+    body { background: white; color: black; }
+    .section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="brand">
+    <span class="brand-name">PlayDesign</span>
+    <span class="brand-sub">Konfigurator zakresu wdrożenia</span>
+  </div>
+
+  <!-- SEKCJA 1: Web -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon" style="background:#E1F5EE">🌐</div>
+      <div style="flex:1">
+        <div class="section-title">Wersja Web — Floorplaner</div>
+        <div class="section-desc">Floorplaner osadzony na stronie e-commerce klienta</div>
+      </div>
+      <span class="section-badge badge-required">Wymagane</span>
+    </div>
+    <div class="section-body">
+      <div class="option-row selected locked">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Wdrożenie środowiska Web <span class="opt-tag tag-api-take">Zawsze w pakiecie</span></div>
+          <div class="opt-desc">Konfiguracja i utrzymanie środowiska hostingowego, osadzenie floorplanera na stronie klienta. Stała opłata miesięczna.</div>
+        </div>
+      </div>
+      <div class="option-row selected locked">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Branding floorplanera <span class="opt-tag tag-api-take">Zawsze w pakiecie</span></div>
+          <div class="opt-desc">Dostosowanie kolorystyki, logotypu i identyfikacji wizualnej floorplanera do brandingu klienta.</div>
+        </div>
+      </div>
+
+      <div class="sub-label">Katalog produktów — sposób dostarczenia:</div>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;padding:0 0.1rem">
+        <div class="option-row" id="opt-catalog-static" onclick="setCatalog('static')">
+          <div class="opt-check">
+            <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="opt-label">Statyczny katalog <span class="opt-tag tag-api-take">Bez cen / stanów mag.</span></div>
+            <div class="opt-desc">Klient dostarcza Excel lub plik z listą produktów i modelami 3D. Dane aktualizowane ręcznie po zgłoszeniu.</div>
+          </div>
+        </div>
+        <div class="option-row" id="opt-catalog-feed" onclick="setCatalog('feed')">
+          <div class="opt-check">
+            <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="opt-label">Feed produktowy (API) <span class="opt-tag tag-api-give">Klient udostępnia API</span></div>
+            <div class="opt-desc">PlayDesign regularnie zaciąga feed — aktualne ceny, stany magazynowe, dostępność produktów w czasie rzeczywistym.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKCJA 2: Lista zakupowa -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon" style="background:#FAEEDA">🛒</div>
+      <div style="flex:1">
+        <div class="section-title">Lista zakupowa</div>
+        <div class="section-desc">Co dzieje się z listą produktów wybranych przez klienta końcowego w projekcie?</div>
+      </div>
+      <span class="section-badge badge-optional">Do wyboru</span>
+    </div>
+    <div class="section-body">
+      <div class="option-row selected" id="opt-pdf" onclick="toggle('pdf', true)">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Generowanie PDF</div>
+          <div class="opt-desc">Klient końcowy może wydrukować lub pobrać PDF z pełną listą produktów użytych w projekcie. Dostępne w wersji podstawowej bez dodatkowej integracji.</div>
+        </div>
+      </div>
+      <div class="option-row" id="opt-cart" onclick="toggle('cart')">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Integracja koszyka e-commerce <span class="opt-tag tag-api-give">Klient udostępnia API</span> <span class="opt-tag tag-dep">Wymaga feedu produktowego</span></div>
+          <div class="opt-desc">Przycisk "Złóż zamówienie" bezpośrednio we floorplanerze — wywołuje API klienta i tworzy koszyk w jego e-commerce z pełną listą produktów z projektu. Automatycznie aktywuje feed produktowy.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKCJA 3: Inspiracje -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon" style="background:#E6F1FB">✨</div>
+      <div style="flex:1">
+        <div class="section-title">API Inspiracji / Publikacji</div>
+        <div class="section-desc">Landing page z kuratowanymi projektami jako punkt wejścia do floorplanera</div>
+      </div>
+      <span class="section-badge badge-included">W pakiecie</span>
+    </div>
+    <div class="section-body">
+      <div class="option-row selected locked">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Strona inspiracji z API <span class="opt-tag tag-api-take">PlayDesign udostępnia API</span></div>
+          <div class="opt-desc">Klient konsumuje API PlayDesign — listuje opublikowane projekty z renderami i listą produktów na swojej stronie. Klient końcowy klika "Otwórz we floorplanerze" lub "Zobacz w projekcie" z karty produktu. Klient zarządza publikacją projektów przez panel PlayDesign.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKCJA 4: Desktop / VR -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon" style="background:#F1EFE8">🖥</div>
+      <div style="flex:1">
+        <div class="section-title">Wersja Desktop (Offline) i VR</div>
+        <div class="section-desc">Stanowiska w salonach fizycznych — mocniejsza wersja z trybem spacerowym i VR</div>
+      </div>
+      <span class="section-badge badge-optional">Do wyboru</span>
+    </div>
+    <div class="section-body">
+      <div class="option-row" id="opt-desktop" onclick="toggle('desktop')">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Wersja Desktop — stanowiska salonowe</div>
+          <div class="opt-desc">Instalacja na mocniejszych maszynach w salonach stacjonarnych. Niezależna od wersji Web, lecz projekty z obu wersji trafiają do wspólnej puli organizacji. Dodatkowa opłata miesięczna × liczba stanowisk.</div>
+          <div class="qty-row" onclick="event.stopPropagation()">
+            <label for="qty-desktop">Liczba stanowisk:</label>
+            <input class="qty-input" type="number" min="1" max="99" value="1" id="qty-desktop" oninput="renderSummary()">
+          </div>
+        </div>
+      </div>
+      <div class="option-row" id="opt-vr" onclick="toggle('vr')">
+        <div class="opt-check">
+          <svg class="check-tick" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="opt-label">Tryb VR <span class="opt-tag tag-dep">Wymaga Desktop</span></div>
+          <div class="opt-desc">Prezentacja projektu w goglach VR bezpośrednio ze stanowiska w salonie. Spacer po zaprojektowanym wnętrzu w skali 1:1.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PODSUMOWANIE -->
+  <div class="summary-box">
+    <div class="summary-head">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+        <rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M4 7.5h7M4 5h7M4 10h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      Podsumowanie wybranego zakresu i wymagań
+    </div>
+    <div class="summary-body">
+      <div class="legend">
+        <div class="legend-item"><span class="req-dot dot-client"></span> Klient musi przygotować</div>
+        <div class="legend-item"><span class="req-dot dot-playdesign"></span> PlayDesign dostarcza / udostępnia</div>
+        <div class="legend-item"><span class="req-dot dot-info"></span> Informacja / uwaga</div>
+      </div>
+      <div id="summary-content">
+        <div class="empty-state">Wybierz zakres powyżej — wymagania pojawią się tutaj automatycznie.</div>
+      </div>
+      <button class="print-btn" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="2" y="5" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M4 5V2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5V5" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="4" y="8" width="6" height="1" rx="0.5" fill="currentColor"/>
+          <rect x="4" y="10" width="4" height="1" rx="0.5" fill="currentColor"/>
+        </svg>
+        Drukuj / Zapisz PDF
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const state = { web: true, catalogMode: null, pdf: true, cart: false, inspo: false, desktop: false, vr: false };
+
+  function toggle(key, force) {
+    if (force !== undefined) { state[key] = force; }
+    else {
+      if (key === 'vr' && !state.desktop) return;
+      state[key] = !state[key];
+      if (key === 'desktop' && !state[key]) state.vr = false;
+      // Koszyk wymaga feedu — przy włączeniu wymuszamy feed, przy wyłączeniu odblokowujemy statyczny
+      if (key === 'cart' && state[key]) state.catalogMode = 'feed';
+    }
+    updateUI();
+  }
+
+  function setCatalog(mode) {
+    // Nie pozwól przełączyć na statyczny gdy koszyk jest aktywny
+    if (mode === 'static' && state.cart) return;
+    state.catalogMode = state.catalogMode === mode ? null : mode;
+    updateUI();
+  }
+
+  function updateUI() {
+    ['web', 'pdf', 'cart', 'inspo', 'desktop', 'vr'].forEach(k => {
+      const el = document.getElementById('opt-' + k);
+      if (!el) return;
+      if (k === 'vr') el.classList.toggle('disabled', !state.desktop);
+      el.classList.toggle('selected', !!state[k]);
+    });
+    ['static', 'feed'].forEach(m => {
+      const el = document.getElementById('opt-catalog-' + m);
+      if (!el) return;
+      el.classList.toggle('selected', state.catalogMode === m);
+      // Statyczny jest zablokowany gdy koszyk aktywny
+      el.classList.toggle('disabled', m === 'static' && state.cart);
+    });
+    const qtyRow = document.getElementById('qty-desktop').closest('.qty-row');
+    qtyRow.style.display = state.desktop ? 'flex' : 'none';
+    renderSummary();
+  }
+
+  function renderSummary() {
+    const c = document.getElementById('summary-content');
+    const client = [], pd = [], info = [];
+
+    pd.push('Konfiguracja i utrzymanie środowiska hostingowego wersji Web');
+    pd.push('Branding floorplanera — dostosowanie kolorystyki i logotypu do identyfikacji wizualnej klienta');
+    pd.push('Osadzenie floorplanera na stronie klienta (kod embed / iframe)');
+    pd.push('Udostępnienie API Inspiracji z listą opublikowanych projektów (rendery, lista produktów, metadane)');
+    client.push('Integracja API Inspiracji na stronie e-commerce — listing projektów z renderami i listą produktów');
+    client.push('Implementacja przycisku "Otwórz we floorplanerze" oraz "Zobacz w projekcie" na kartach produktów');
+    info.push('Stała miesięczna opłata licencyjna za wersję Web');
+    info.push('Klient zarządza publikacją projektów (oznacza jako inspiracje) przez panel PlayDesign');
+
+    if (state.catalogMode === 'static') {
+      client.push('Dostarczenie pliku produktowego (Excel lub CSV) z nazwami, opisami, zdjęciami i modelami 3D');
+      info.push('Brak automatycznych cen i stanów magazynowych — dane aktualizowane ręcznie po każdym zgłoszeniu');
+    } else if (state.catalogMode === 'feed') {
+      client.push('Udostępnienie feedu produktowego (API REST / XML / JSON) z cenami i stanami magazynowymi');
+      info.push('PlayDesign regularnie zaciąga feed i synchronizuje dane w katalogu floorplanera');
+    } else {
+      info.push('Wybierz sposób dostarczenia katalogu produktów (wymagane do uruchomienia)');
+    }
+
+    if (state.pdf) pd.push('Generowanie PDF z listą produktów z projektu (dostępne w wersji podstawowej)');
+
+    if (state.cart) {
+      client.push('Udostępnienie API do tworzenia koszyka w e-commerce (endpoint przyjmujący listę SKU z ilościami)');
+      pd.push('Integracja przycisku "Złóż zamówienie" we floorplanerze wywołującego API koszyka klienta');
+    }
+
+    if (state.desktop) {
+      const qty = parseInt(document.getElementById('qty-desktop').value) || 1;
+      client.push('Zapewnienie ' + qty + ' stanowisk salonowych spełniających wymagania sprzętowe PlayDesign Desktop');
+      pd.push('Instalacja i konfiguracja oprogramowania Desktop na ' + qty + (qty === 1 ? ' stanowisku' : ' stanowiskach'));
+      info.push('Dodatkowa opłata miesięczna: ' + qty + ' × stawka za stanowisko Desktop');
+      info.push('Projekty z wersji Desktop i Web trafiają do wspólnej puli projektów organizacji');
+    }
+
+    if (state.vr) {
+      client.push('Zakup gogli VR kompatybilnych z PlayDesign (specyfikacja urządzeń do uzgodnienia)');
+      pd.push('Wdrożenie trybu VR — spacer po projekcie w skali 1:1 ze stanowiska salonowego');
+    }
+
+    let html = '';
+    if (client.length) {
+      html += '<div class="req-section"><div class="req-title">Po stronie klienta</div>';
+      client.forEach(t => html += '<div class="req-item"><span class="req-dot dot-client"></span><span class="req-text">' + t + '</span></div>');
+      html += '</div>';
+    }
+    if (pd.length) {
+      html += '<div class="req-section"><div class="req-title">Dostarcza PlayDesign</div>';
+      pd.forEach(t => html += '<div class="req-item"><span class="req-dot dot-playdesign"></span><span class="req-text">' + t + '</span></div>');
+      html += '</div>';
+    }
+    if (info.length) {
+      html += '<div class="req-section"><div class="req-title">Dodatkowe informacje</div>';
+      info.forEach(t => html += '<div class="req-item"><span class="req-dot dot-info"></span><span class="req-text">' + t + '</span></div>');
+      html += '</div>';
+    }
+    c.innerHTML = html || '<div class="empty-state">Wybierz zakres powyżej.</div>';
+  }
+
+  updateUI();
+</script>
+</body>
+</html>
